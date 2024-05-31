@@ -1,0 +1,23 @@
+[project]
+name = "neural_gaussian_scale_space_fields"
+version = "1.0.0"
+dependencies = [
+  "glfw",
+  "imageio",
+  "jaxtyping",
+  "lpips",
+  "matplotlib",
+  "numpy",
+  "pysdf",
+  "scikit-image",
+  "scipy",
+  "torch",
+  "tqdm",
+  "trimesh"
+]
+
+[project.optional-dependencies]
+neural-texture = ["glfw", "opencv-python", "PyOpenGL"]
+
+[tool.setuptools]
+packages = ["ngssf", "ngssf.nn"]

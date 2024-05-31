@@ -1,0 +1,6 @@
+/data/
+/results/
+/neural_gaussian_scale_space_fields.egg-info/
+/.idea/
+
+__pycache__/
