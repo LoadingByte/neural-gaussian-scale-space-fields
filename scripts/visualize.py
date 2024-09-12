@@ -31,10 +31,10 @@ def picture_anisotropic():
 
 
 def _picture(base_dir, scale_set, indices):
-    for name in tqdm([
+    for name in tqdm(args_or([
         "bbq", "cliffs", "colosseo", "crystals", "firenze", "firewood", "mutter", "peak", "portal", "rue",
         "schaumbrunnen", "steepshore", "toomuchbleach", "tunnelrampe", "zebras"
-    ], desc="name", leave=False):
+    ]), desc="name", leave=False):
         for index in tqdm(indices, desc="scale", leave=False):
             gauss_img = _prepare_picture_image(ngssf.results.load_benchmark("gauss", "picture", name, scale_set, index))
             pred_img = _prepare_picture_image(ngssf.results.load_benchmark("neural", "picture", name, scale_set, index))
@@ -45,12 +45,14 @@ def _picture(base_dir, scale_set, indices):
 
 
 def picture_foveation():
-    field = ngssf.results.load_neural_field("neural", "picture", "squirrel").cuda()
+    name = arg_or("squirrel")
+    field = ngssf.results.load_neural_field("neural", "picture", name).cuda()
     res = 512
     X = ngssf.util.grid_coords(res, 2, device="cuda")
     with torch.no_grad():
         pred_img = field(X, (X.norm(dim=1) - 0.35).clamp(0) ** 3 / 200).T.reshape(3, res, res)
-    _write_image(ngssf.results.visualizations_dir() / "picture_foveation.jpg", _prepare_picture_image(pred_img))
+    img = _prepare_picture_image(pred_img)
+    _write_image(ngssf.results.visualizations_dir() / "picture_foveation" / f"{name}.jpg", img)
 
 
 def _prepare_picture_image(img):
@@ -59,7 +61,7 @@ def _prepare_picture_image(img):
 
 def mesh_isotropic():
     scale_set = "variance_benchmark"
-    for name in tqdm(ngssf.data.names("mesh"), desc="name", leave=False):
+    for name in tqdm(args_or(ngssf.data.names("mesh")), desc="name", leave=False):
         d = ngssf.results.visualizations_dir() / "mesh_isotropic"
         dg = d / name / "gauss"
         dn = d / name / "neural"
@@ -73,9 +75,10 @@ def mesh_isotropic():
 
 
 def mesh_anisotropic():
-    d = ngssf.results.visualizations_dir() / "mesh_anisotropic"
+    name = arg_or("thai")
+    d = ngssf.results.visualizations_dir() / "mesh_anisotropic" / name
     d.mkdir(parents=True, exist_ok=True)
-    field = ngssf.results.load_neural_field("neural", "mesh", "thai").cuda()
+    field = ngssf.results.load_neural_field("neural", "mesh", name).cuda()
     for label, variances in [
         ("isotropic", [1e-2, 1e-2, 1e-2]),
         ("anisotropic_horizontal", [1e-2, 1e-8, 1e-2]),
@@ -84,12 +87,13 @@ def mesh_anisotropic():
         scale = torch.diag(torch.tensor(variances))
         with torch.no_grad():
             grid = ngssf.util.eval_grid(256, field, scale.cuda(), batch_size=2 ** 18).cpu()
-        ngssf.util.mesh_from_grid(grid).export(d / f"thai_{label}.ply")
+        ngssf.util.mesh_from_grid(grid).export(d / f"{label}.ply")
 
 
 def lightstage():
+    name = arg_or("cute")
     light_positions = ngssf.data.lightstage_light_positions()
-    field = ngssf.results.load_neural_field("neural", "lightstage", "cute").cuda()
+    field = ngssf.results.load_neural_field("neural", "lightstage", name).cuda()
     w, h = 512, 384
     X = torch.cat([
         torch.cartesian_prod(torch.linspace(-0.75, 0.75, h), torch.linspace(-1, 1, w)).flip(1),
@@ -99,7 +103,7 @@ def lightstage():
         with torch.no_grad():
             Y = field(X.cuda(), scale)
         img = _prepare_image(Y.T.reshape(3, h, w))
-        _write_image(ngssf.results.visualizations_dir() / "lightstage" / f"{i}.jpg", img)
+        _write_image(ngssf.results.visualizations_dir() / "lightstage" / name / f"{i}.jpg", img)
 
 
 def picture_video():
@@ -114,7 +118,7 @@ def picture_video():
     spectrum_label = _label("Spectrum", 1300, (128, 32), overlay=True)
     cov_label = _label("Covariance", 1300, (128, 32))
 
-    for name in tqdm(["bbq", "firewood", "schaumbrunnen", "tunnelrampe"], leave=False):
+    for name in tqdm(args_or(["bbq", "firewood", "schaumbrunnen", "tunnelrampe"]), leave=False):
         orig_picture = torch.as_tensor(resize(ngssf.data.load("picture", name).numpy(), (3, 512, 512)), device="cuda")
         neural_field = ngssf.results.load_neural_field("neural", "picture", name).cuda()
         gauss_field = ngssf.GaussianMonteCarloSmoothableField(ngssf.GridField(orig_picture, padding_mode="reflection"))
@@ -146,7 +150,7 @@ def _spectrum(picture):
 def mesh_video_objects():
     cov_mats = torch.tensor(_mesh_video_covariance_matrices(), dtype=torch.float32, device="cuda")
 
-    for name in tqdm(ngssf.data.names("mesh"), leave=False):
+    for name in tqdm(args_or(ngssf.data.names("mesh")), leave=False):
         orig_mesh = ngssf.data.load("mesh", name)
         neural_field = ngssf.results.load_neural_field("neural", "mesh", name).cuda()
         gauss_field = ngssf.GaussianMonteCarloSmoothableField(
@@ -191,12 +195,13 @@ def _mesh_video_covariance_matrices():
 
 
 def lightstage_video():
-    d = ngssf.results.visualizations_dir()
+    name = arg_or("cute")
+    d = ngssf.results.visualizations_dir() / "lightstage_video"
     d.mkdir(parents=True, exist_ok=True)
 
-    light_shots = ngssf.data.load("lightstage", "cute")
+    light_shots = ngssf.data.load("lightstage", name)
     light_pos = ngssf.data.lightstage_light_positions()
-    neural_field = ngssf.results.load_neural_field("neural", "lightstage", "cute").cuda()
+    neural_field = ngssf.results.load_neural_field("neural", "lightstage", name).cuda()
     neural_field.calibration_factors[1] = 500
     gauss_field = ngssf.GaussianMonteCarloSmoothableField(ngssf.LightStageField(light_shots, light_pos), {2, 3}).cuda()
 
@@ -218,7 +223,7 @@ def lightstage_video():
     cov_label = _label("Covariance", 1300, (128, 32))
     plotted_pos = light_pos[(light_pos - (light_pos[2] + light_pos[22]) / 2).norm(dim=1) < 0.15]
 
-    video = VideoWriter(str(d / "lightstage_video.mp4"), VideoWriter.fourcc('a', 'v', 'c', '1'), 60, (1152, 384))
+    video = VideoWriter(str(d / f"{name}.mp4"), VideoWriter.fourcc('a', 'v', 'c', '1'), 60, (1152, 384))
     for x_light, cov_mat in tqdm(list(zip(xs_light, cov_mats)), leave=False):
         X = torch.cat([X_pixel, x_light.tile(w * h, 1)], dim=1).cuda()
         with torch.no_grad():
@@ -302,6 +307,14 @@ def _prepare_image(img):
 def _write_image(file, img):
     file.parent.mkdir(parents=True, exist_ok=True)
     iio.imwrite(file, (img * 255).astype(np.uint8), quality=90)
+
+
+def arg_or(default):
+    return sys.argv[2] if len(sys.argv) > 2 else default
+
+
+def args_or(default):
+    return sys.argv[2:] if len(sys.argv) > 2 else default
 
 
 if __name__ == "__main__":

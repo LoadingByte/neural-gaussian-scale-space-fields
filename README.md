@@ -46,7 +46,13 @@ install our package:
     pip install -e .
 
 Next, download the [dataset](https://neural-gaussian-scale-space-fields.mpi-inf.mpg.de/data.zip) and extract it into the
-repository such that, e.g., the folder `/data/picture` exists.
+repository such that the new `data/` folder and the `scripts/` folder are siblings.
+
+Steps 1 and 2 take a long time. To skip them, download the
+[pretrained models](https://neural-gaussian-scale-space-fields.mpi-inf.mpg.de/models.zip) and extract them into the
+repository such that the new `results/` folder and the `scripts/` folder are siblings.
+
+The outputs of any experiment or visualizer will be written to the `results/` folder.
 
 ### Step 1: Train
 
@@ -63,6 +69,12 @@ third argument. Look in the `data/` folder for all available names. Notice that 
 
     python scripts/train.py neural picture bbq
     python scripts/train.py neural mesh armadillo
+
+Training a field takes about 4 hours because it does not halt upon convergence, but stoically continues for the maximum
+number of iterations. To speed up training, you can significantly lower the `n_iters` variables in
+[`train.py`](scripts/train.py) without notably sacrificing quality.
+
+Each field takes 24MB of space, summing to 1.3GB for all fields.
 
 ### Step 2: Calibrate
 
@@ -85,6 +97,9 @@ Also use this script to generate smoothed ground truths via Monte Carlo convolut
     python scripts/benchmark.py gauss picture [name]
     python scripts/benchmark.py gauss mesh [name]
 
+Benchmarking a picture/mesh field takes about 5min/15min. Generating picture/mesh ground truths takes about 30min/4h.
+Per picture/mesh, the smoothed versions take 5GB/6.5GB, summing to about 1TB for all results.
+
 ### Step 4: Metrics
 
 Use the [`metrics.py`](scripts/metrics.py) script to compare the output of our field with the ground truth:
@@ -105,20 +120,20 @@ Numbers very similar to those found in Tables 1-4 in our paper should now be ava
 
 Use the [`visualize.py`](scripts/visualize.py) script to get the images, videos, and meshes from our paper and website:
 
-    python scripts/visualize.py picture_isotropic
-    python scripts/visualize.py picture_anisotropic
-    python scripts/visualize.py picture_foveation
-    python scripts/visualize.py mesh_isotropic
-    python scripts/visualize.py mesh_anisotropic
+    python scripts/visualize.py picture_isotropic [name]
+    python scripts/visualize.py picture_anisotropic [name]
+    python scripts/visualize.py picture_foveation [name]
+    python scripts/visualize.py mesh_isotropic [name]
+    python scripts/visualize.py mesh_anisotropic [name]
     python scripts/visualize.py lightstage
-    python scripts/visualize.py picture_video
-    python scripts/visualize.py mesh_video_objects
-    python scripts/visualize.py mesh_video_ellipsoids
+    python scripts/visualize.py picture_video [name]
+    python scripts/visualize.py mesh_video_objects [name]
+    python scripts/visualize.py mesh_video_ellipsoids [name]
     python scripts/visualize.py lightstage_video
 
 ### Ablations
 
-To reproduce our ablations, perform the above four above steps with `neural` replaced by one of the following:
+To reproduce our ablations, perform steps 1-4 with `neural` replaced by one of the following:
 
 | Configuration as in the paper | Script equivalent                       |
 |-------------------------------|-----------------------------------------|
@@ -136,6 +151,11 @@ First install the required additional dependencies:
 
     pip install -e .[neural-texture]
 
+If you neither downloaded the pretrained models nor ran steps 1-2 yet, run these commands to prepare the neural texture:
+
+    python scripts/train.py neural textured
+    python scripts/calibrate.py neural textured
+
 Open the 3D renderer window using the [`textured_render_uv.py`](scripts/textured_render_uv.py) script. Press ESC to
 quit, W/A/S/D/SPACE/SHIFT to move, and use the mouse to look around. You will see the mesh of a fish, but instead of a
 texture, it is covered in UV coordinates. If you feel dizzy, set `gizmo_and_grid` in the script to true to render a
@@ -149,3 +169,12 @@ factor here and increased the window size in `textured_render_uv.py` to still ge
 demonstrate our method, you can replace `16` with `1`:
 
     python scripts/textured_apply_neural_texture.py moving 16
+
+### Performance
+
+Use the [`performance.py`](scripts/performance.py) script to reproduce our timing experiment:
+
+    python scripts/performance.py vanilla picture 30
+    python scripts/performance.py vanilla mesh 0.004
+    python scripts/performance.py neural picture 30
+    python scripts/performance.py neural mesh 0.004

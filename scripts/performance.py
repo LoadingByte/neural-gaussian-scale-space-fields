@@ -13,10 +13,6 @@ import ngssf
 def main(field_type, category, stop_metric):
     stop_metric = float(stop_metric)
 
-    out_dir = ngssf.results.performance_dir()
-    pred_dir = out_dir / f"predictions_{field_type}_{category}_{stop_metric}"
-    pred_dir.mkdir(parents=True, exist_ok=True)
-
     # Warm-up
     time_method(field_type, category, perf_names(category)[0], 0, stop_metric)
 
@@ -33,7 +29,7 @@ def main(field_type, category, stop_metric):
                 its.append(it)
         rows.append((f"{var_bench_idx}", field_type, f"{np.mean(tts):.4f}", f"{np.mean(its):.4f}"))
 
-    with open(out_dir / f"timings_{field_type}_{category}_{stop_metric}.csv", "w") as f:
+    with open(ngssf.results.performance_dir() / f"timings_{field_type}_{category}_{stop_metric}.csv", "w") as f:
         f.write("\n".join(",".join(row) for row in rows))
 
 
@@ -70,8 +66,7 @@ def time_method(field_type, category, name, var_bench_idx, stop_metric):
         start_time = cur_time()
 
     def loop_fn(itr, pred_fn):
-        # Bacon produces extremely complex meshes initially, which slow down our Chamfer code significantly.
-        if (itr + 1) % 50 != 0 or field_type == "bacon" and category == "mesh" and itr < 15_000:
+        if (itr + 1) % 50 != 0:
             return False
         inference_start_time = cur_time()
         with torch.no_grad():
@@ -117,7 +112,7 @@ def train(field_type, category, true_grid, true_mesh, res, start_fn, loop_fn):
         sampler = ngssf.MinibatchSampler(2 ** 24, ngssf.SDFSampler(true_mesh)).cuda()
         enc_kw["length_distribution_param"] = 100
         n_samples = 200_000
-    if field_type.startswith("neural"):
+    if field_type == "neural":
         scaler = ngssf.MinibatchScaler(10_000_000, ngssf.RandomScaler(True, sig.coords)).cuda()
         field = ngssf.nn.prefab.Smoothable4x1024NeuralField(sig.coords, sig.channels, True, None, enc_kw)
     elif field_type == "vanilla":
