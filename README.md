@@ -1,4 +1,4 @@
-# Neural Gaussian Scale-Space Fields
+# Neural Gaussian Scale-Space Fields [<img alt="Graphics Replicability Stamp" title="Graphics Replicability Stamp" src="https://www.replicabilitystamp.org/logo/Reproducibility.png" height="43" align="right">](https://www.replicabilitystamp.org#https-github-com-loadingbyte-neural-gaussian-scale-space-fields)
 
 This is the Python reference implementation of our paper
 "[Neural Gaussian Scale-Space Fields](https://neural-gaussian-scale-space-fields.mpi-inf.mpg.de)".
